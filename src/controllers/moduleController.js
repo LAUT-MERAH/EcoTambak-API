@@ -15,6 +15,25 @@ exports.getAllModules = async (req, res) => {
     }
 };
 
+exports.getInstructorModules = async (req, res) => {
+    try {
+        const userId = req.user.id; // Assuming user is an instructor
+
+        const [modules] = await db.promise().query(
+            'SELECT * FROM modules WHERE user_id = ?',
+            [userId]
+        );
+
+        res.status(200).json({
+            status: 'success',
+            data: modules
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error!' });
+    }
+};
+
 // Create a new module
 exports.createModule = async (req, res) => {
     try {
