@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const connection = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,5 +36,6 @@ apiV1Router.get('/', (req, res) => {
 });
 
 apiV1Router.use('/auth', authRoutes);
+apiV1Router.use('/users', userRoutes);
 
 app.use('/api/v1', apiV1Router);
