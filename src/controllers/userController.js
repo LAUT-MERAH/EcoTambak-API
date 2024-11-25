@@ -80,3 +80,42 @@ exports.updateProfile = async (req, res) => {
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
+
+exports.applyInstructor = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const [existingApplication] = await db.promise().query(
+            'SELECT * FROM instructor_applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+            [userId]
+        );
+
+        if (existingApplication.length > 0) {
+            const application = existingApplication[0];
+
+            if (application.status === "PENDING") {
+                return res.status(400).json({ error: 'You already have a pending application! Please wait for the outcome before re-applying.' });
+            }
+
+            if (application.status === "APPROVED") {
+                return res.status(400).json({ error: 'You are already an instructor!' });
+            }
+        }
+
+        const ulidValue = ulid();
+        await db.promise().query(
+            'INSERT INTO instructor_applications (ulid, user_id, status, comments, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+            [ulidValue, userId, 'PENDING', null]
+        );
+
+        console.log(`New instructor application submitted by User ID: ${userId} with ULID: ${ulidValue}`);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Application submitted successfully!'
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error!' });
+    }
+};
