@@ -79,3 +79,15 @@ CREATE TABLE certifications (
     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Create Instructor Applications Table
+CREATE TABLE instructor_applications (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ulid CHAR(26) NOT NULL UNIQUE,
+    user_id BIGINT UNSIGNED NOT NULL,
+    status VARCHAR(255) NOT NULL,
+    comments TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
