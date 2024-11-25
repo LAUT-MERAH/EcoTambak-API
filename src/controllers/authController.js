@@ -58,7 +58,7 @@ exports.login = async (req, res) => {
         // Check if user exists
         const [userResults] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
         if (userResults.length === 0) {
-            return res.status(400).json({ error: 'Invalid email or password!' });
+            return res.status(400).json({ error: 'User is not exist!' });
         }
 
         const user = userResults[0];
@@ -68,9 +68,11 @@ exports.login = async (req, res) => {
         if (!isMatch) {
             return res.status(400).json({ error: 'Invalid email or password!' });
         }
-
-        // Generate a JWT
-        const payload = { id: user.id, username: user.username };
+        const payload = {
+            id: user.id,
+            username: user.username,
+            role_id: user.role_id
+        };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.status(200).json({
@@ -84,9 +86,8 @@ exports.login = async (req, res) => {
     }
 };
 
-// User Logout (Basic Implementation - Token handled in frontend)
+// User Logout
 exports.logout = (req, res) => {
-    // To logout, the front-end simply removes the token
     res.status(200).json({
         status: 'success',
         message: 'Logged out successfully!'
