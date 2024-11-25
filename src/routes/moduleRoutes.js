@@ -4,7 +4,7 @@ const moduleController = require('../controllers/moduleController');
 const { verifyToken } = require('../middleware/authMiddleware');
 const { isInstructor } = require('../middleware/instructorMiddleware');
 
-
+router.get('/', moduleController.getAllModules);
 router.post('/', verifyToken, isInstructor, moduleController.createModule);
 
 module.exports = router;
