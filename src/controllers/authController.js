@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const { ulid } = require('ulid');
 const jwt = require('jsonwebtoken');
+const tokenBlacklist = require('../config/tokenBlacklist');
 require('dotenv').config();
 
 // User Registration
@@ -88,6 +89,11 @@ exports.login = async (req, res) => {
 
 // User Logout
 exports.logout = (req, res) => {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (token) {
+        tokenBlacklist.add(token);
+    }
+
     res.status(200).json({
         status: 'success',
         message: 'Logged out successfully!'
