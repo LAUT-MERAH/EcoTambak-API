@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connection = require('./config/db');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,8 +23,17 @@ connection.connect((err) => {
     }
 });
 
-app.get('/', (req, res) => {
-    res.json({
-        message: 'API is up and running! 🚀 Welcome To EcoTambak API'
-    });
+const apiV1Router = express.Router();
+const welcomeMessage = {
+    status: 'success',
+    message: 'API is up and running! 🚀 Welcome To EcoTambak API',
+    timestamp: new Date().toISOString()
+};
+
+apiV1Router.get('/', (req, res) => {
+    res.status(200).json(welcomeMessage);
 });
+
+apiV1Router.use('/auth', authRoutes);
+
+app.use('/api/v1', apiV1Router);
