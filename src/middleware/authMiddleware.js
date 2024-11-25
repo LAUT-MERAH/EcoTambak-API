@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const tokenBlacklist = require('../config/tokenBlacklist');
 require('dotenv').config();
 
 exports.verifyToken = (req, res, next) => {
@@ -7,9 +8,12 @@ exports.verifyToken = (req, res, next) => {
         return res.status(401).json({ error: 'Access denied. No token provided.' });
     }
 
+    if (tokenBlacklist.has(token)) {
+        return res.status(403).json({ error: 'Your session has ended. Please log in to continue.' });
+    }
+
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log('Decoded JWT Payload:', decoded); // Add this log
         req.user = decoded;
         next();
     } catch (ex) {
