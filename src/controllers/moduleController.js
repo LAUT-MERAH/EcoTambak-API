@@ -17,7 +17,7 @@ exports.getAllModules = async (req, res) => {
 
 exports.getInstructorModules = async (req, res) => {
     try {
-        const userId = req.user.id; // Assuming user is an instructor
+        const userId = req.user.id;
 
         const [modules] = await db.promise().query(
             'SELECT * FROM modules WHERE user_id = ?',
