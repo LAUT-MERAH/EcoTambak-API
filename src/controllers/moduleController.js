@@ -67,21 +67,27 @@ exports.updateModule = async (req, res) => {
     try {
         const userId = req.user.id;
         const { moduleUlid } = req.params;
-        const { title, description, playlistUrl, thumbnailUrl } = req.body;
+        const { title, description, playlistUrl, thumbnailUrl, is_hidden } = req.body;
 
-        // Check if the module exists and if it belongs to the instructor
         const [module] = await db.promise().query(
             'SELECT * FROM modules WHERE ulid = ? AND user_id = ?',
             [moduleUlid, userId]
         );
+
         if (module.length === 0) {
             return res.status(404).json({ error: 'Module not found or you do not have permission to update it!' });
         }
 
-        // Update the module details
         await db.promise().query(
-            'UPDATE modules SET title = ?, description = ?, playlist_url = ?, thumbnail_url = ?, updated_at = CURRENT_TIMESTAMP WHERE ulid = ?',
-            [title || module[0].title, description || module[0].description, playlistUrl || module[0].playlist_url, thumbnailUrl || module[0].thumbnail_url, moduleUlid]
+            'UPDATE modules SET title = ?, description = ?, playlist_url = ?, thumbnail_url = ?, is_hidden = ?, updated_at = CURRENT_TIMESTAMP WHERE ulid = ?',
+            [
+                title || module[0].title,
+                description || module[0].description,
+                playlistUrl || module[0].playlist_url,
+                thumbnailUrl || module[0].thumbnail_url,
+                typeof is_hidden !== 'undefined' ? is_hidden : module[0].is_hidden,
+                moduleUlid
+            ]
         );
 
         res.status(200).json({
@@ -93,3 +99,4 @@ exports.updateModule = async (req, res) => {
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
+
