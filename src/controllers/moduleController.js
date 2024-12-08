@@ -48,8 +48,8 @@ exports.createModule = async (req, res) => {
 
         // Insert the module into the database
         await db.promise().query(
-            'INSERT INTO modules (ulid, title, description, playlist_url, thumbnail_url, user_id) VALUES (?, ?, ?, ?, ?, ?)',
-            [ulidValue, title, description, playlistUrl, thumbnailUrl || null, userId]
+            'INSERT INTO modules (ulid, title, description, playlist_url, thumbnail_url, is_hidden, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [ulidValue, title, description, playlistUrl, thumbnailUrl || null, false, userId]
         );
 
         res.status(201).json({
