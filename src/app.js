@@ -8,6 +8,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const lessonRoutes = require('./routes/lessonRoutes');
 const moduleRoutes = require('./routes/moduleRoutes');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
+const progressRoutes = require('./routes/progressRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,5 +46,6 @@ apiV1Router.use('/modules', moduleRoutes);
 apiV1Router.use('/lessons', lessonRoutes);
 apiV1Router.use('/admin', adminRoutes);
 apiV1Router.use('/enrollments', enrollmentRoutes);
+apiV1Router.use('/progress', progressRoutes);
 
 app.use('/api/v1', apiV1Router);
