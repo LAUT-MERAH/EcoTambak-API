@@ -6,5 +6,6 @@ const { isInstructor } = require('../middleware/instructorMiddleware');
 
 router.get('/:moduleUlid', verifyToken, lessonController.getLessons);
 router.post('/', verifyToken, isInstructor, lessonController.addLesson);
+router.put('/:lessonUlid', verifyToken, isInstructor, lessonController.updateLesson);
 
 module.exports = router;
