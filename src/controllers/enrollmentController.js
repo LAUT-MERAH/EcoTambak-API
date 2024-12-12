@@ -1,6 +1,37 @@
 const db = require('../config/db');
 const { ulid } = require('ulid');
 
+exports.getEnrollments = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const [enrollments] = await db.promise().query(
+            `SELECT 
+                enrollments.ulid AS enrollment_id,
+                modules.ulid AS module_id,
+                modules.title,
+                modules.description,
+                modules.thumbnail_url,
+                enrollments.status,
+                enrollments.progress,
+                enrollments.enrollment_date
+             FROM enrollments
+             JOIN modules ON enrollments.module_id = modules.id
+             WHERE enrollments.user_id = ?`,
+            [userId]
+        );
+
+        res.status(200).json({
+            status: 'success',
+            data: enrollments
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error!' });
+    }
+};
+
+
 exports.enrollInModule = async (req, res) => {
     try {
         const userId = req.user.id;
