@@ -67,3 +67,38 @@ exports.addLesson = async (req, res) => {
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
+
+exports.updateLesson = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { lessonUlid } = req.params;
+        const { title, videoUrl, thumbnailUrl } = req.body;
+
+
+        const [lesson] = await db.promise().query(
+            'SELECT * FROM lessons WHERE ulid = ? AND user_id = ?',
+            [lessonUlid, userId]
+        );
+        if (lesson.length === 0) {
+            return res.status(404).json({ error: 'Lesson not found or you do not have permission to update it!' });
+        }
+
+        await db.promise().query(
+            'UPDATE lessons SET title = ?, video_url = ?, thumbnail_url = ?, updated_at = CURRENT_TIMESTAMP WHERE ulid = ?',
+            [
+                title || lesson[0].title,
+                videoUrl || lesson[0].video_url,
+                thumbnailUrl || lesson[0].thumbnail_url,
+                lessonUlid
+            ]
+        );
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Lesson updated successfully!'
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error!' });
+    }
+};
