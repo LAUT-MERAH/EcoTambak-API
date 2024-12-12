@@ -102,3 +102,32 @@ exports.updateLesson = async (req, res) => {
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
+
+exports.deleteLesson = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { lessonUlid } = req.params;
+
+        const [lesson] = await db.promise().query(
+            `SELECT lessons.* 
+             FROM lessons 
+             INNER JOIN modules ON lessons.module_id = modules.id 
+             WHERE lessons.ulid = ? AND modules.user_id = ?`,
+            [lessonUlid, userId]
+        );
+
+        if (lesson.length === 0) {
+            return res.status(404).json({ error: 'Lesson not found or you do not have permission to delete it!' });
+        }
+
+        await db.promise().query('DELETE FROM lessons WHERE ulid = ?', [lessonUlid]);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Lesson deleted successfully!'
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error!' });
+    }
+};
