@@ -34,6 +34,67 @@ exports.getInstructorModules = async (req, res) => {
     }
 };
 
+exports.getModuleDetails = async (req, res) => {
+    try {
+        const { moduleUlid } = req.params;
+        const userId = req.user?.id || null; // Check if a user is logged in
+
+        if (!moduleUlid) {
+            return res.status(400).json({ error: 'Module ULID is required!' });
+        }
+
+        // Fetch module details
+        const [moduleDetails] = await db.promise().query(
+            `SELECT 
+                modules.ulid, 
+                modules.title, 
+                modules.description, 
+                modules.thumbnail_url, 
+                users.username AS instructor 
+            FROM modules 
+            JOIN users ON modules.user_id = users.id 
+            WHERE modules.ulid = ?`,
+            [moduleUlid]
+        );
+
+        if (moduleDetails.length === 0) {
+            return res.status(404).json({ error: 'Module not found!' });
+        }
+
+        const module = moduleDetails[0];
+
+        // Fetch lessons for the module
+        const [lessons] = await db.promise().query(
+            `SELECT ulid, title, video_url, thumbnail_url 
+             FROM lessons 
+             WHERE module_id = (SELECT id FROM modules WHERE ulid = ?)`,
+            [moduleUlid]
+        );
+
+        // Check if the user is enrolled in this module
+        let isEnrolled = false;
+        if (userId) {
+            const [enrollment] = await db.promise().query(
+                'SELECT * FROM enrollments WHERE user_id = ? AND module_id = (SELECT id FROM modules WHERE ulid = ?)',
+                [userId, moduleUlid]
+            );
+            isEnrolled = enrollment.length > 0;
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                ...module,
+                lessons,
+                isEnrolled
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error!' });
+    }
+};
+
 // Create a new module
 exports.createModule = async (req, res) => {
     try {
