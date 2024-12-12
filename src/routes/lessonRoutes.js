@@ -7,5 +7,6 @@ const { isInstructor } = require('../middleware/instructorMiddleware');
 router.get('/:moduleUlid', verifyToken, lessonController.getLessons);
 router.post('/', verifyToken, isInstructor, lessonController.addLesson);
 router.put('/:lessonUlid', verifyToken, isInstructor, lessonController.updateLesson);
+router.delete('/:lessonUlid', verifyToken, isInstructor, lessonController.deleteLesson);
 
 module.exports = router;
