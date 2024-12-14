@@ -6,30 +6,56 @@ exports.getEnrollments = async (req, res) => {
         const userId = req.user.id;
 
         const [enrollments] = await db.promise().query(
-            `SELECT 
-                enrollments.ulid AS enrollment_id,
-                modules.ulid AS module_id,
-                modules.title,
-                modules.description,
-                modules.thumbnail_url,
-                enrollments.status,
-                enrollments.progress,
-                enrollments.enrollment_date
-             FROM enrollments
-             JOIN modules ON enrollments.module_id = modules.id
-             WHERE enrollments.user_id = ?`,
+            `
+            SELECT 
+                e.ulid AS enrollment_id,
+                m.ulid AS module_id,
+                m.title,
+                m.description,
+                m.thumbnail_url,
+                e.status,
+                COUNT(DISTINCT l.id) AS total_lessons,
+                COUNT(DISTINCT lc.id) AS completed_lessons,
+                e.enrollment_date
+            FROM enrollments e
+            JOIN modules m ON e.module_id = m.id
+            LEFT JOIN lessons l ON l.module_id = m.id
+            LEFT JOIN lesson_completions lc ON lc.lesson_id = l.id AND lc.user_id = e.user_id
+            WHERE e.user_id = ?
+            GROUP BY e.id, m.id
+            `,
             [userId]
         );
 
+        const data = enrollments.map((enrollment) => {
+            const totalLessons = enrollment.total_lessons || 0;
+            const completedLessons = enrollment.completed_lessons || 0;
+            const progress = totalLessons > 0
+                ? ((completedLessons / totalLessons) * 100).toFixed(2)
+                : 0;
+
+            return {
+                enrollment_id: enrollment.enrollment_id,
+                module_id: enrollment.module_id,
+                title: enrollment.title,
+                description: enrollment.description,
+                thumbnail_url: enrollment.thumbnail_url,
+                status: enrollment.status,
+                progress: progress,
+                enrollment_date: enrollment.enrollment_date
+            };
+        });
+
         res.status(200).json({
             status: 'success',
-            data: enrollments
+            data: data
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
+
 
 
 exports.enrollInModule = async (req, res) => {
