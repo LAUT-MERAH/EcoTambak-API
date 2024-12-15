@@ -47,6 +47,13 @@ exports.markLessonCompleted = async (req, res) => {
             [progress, userId, moduleId]
         );
 
+        if (parseFloat(progress) > 0 && parseFloat(progress) < 100) {
+            await db.promise().query(
+                'UPDATE enrollments SET status = "IN_PROGRESS", updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND module_id = ? AND status = "NOT_STARTED"',
+                [userId, moduleId]
+            );
+        }
+
         if (parseFloat(progress) === 100.00) {
             await db.promise().query(
                 'UPDATE enrollments SET status = "COMPLETED", completion_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND module_id = ?',
@@ -64,4 +71,5 @@ exports.markLessonCompleted = async (req, res) => {
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
+
 
