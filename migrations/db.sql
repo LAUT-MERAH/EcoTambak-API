@@ -61,6 +61,7 @@ CREATE TABLE enrollments (
     status VARCHAR(255) NOT NULL,
     enrollment_date TIMESTAMP NOT NULL,
     completion_date TIMESTAMP,
+    certificate_url VARCHAR(2083),
     user_id BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
