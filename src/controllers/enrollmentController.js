@@ -83,7 +83,7 @@ exports.enrollInModule = async (req, res) => {
         const ulidValue = ulid();
         await db.promise().query(
             'INSERT INTO enrollments (ulid, module_id, user_id, status, enrollment_date, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-            [ulidValue, module[0].id, userId, 'IN_PROGRESS']
+            [ulidValue, module[0].id, userId, 'NOT_STARTED']
         );
 
         res.status(201).json({
