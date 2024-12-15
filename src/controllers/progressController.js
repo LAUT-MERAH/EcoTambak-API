@@ -18,7 +18,6 @@ exports.markLessonCompleted = async (req, res) => {
         }
 
         const moduleId = lesson[0].module_id;
-
         const [enrollment] = await db.promise().query(
             'SELECT * FROM enrollments WHERE user_id = ? AND module_id = ?',
             [userId, moduleId]
@@ -44,9 +43,16 @@ exports.markLessonCompleted = async (req, res) => {
         const progress = ((completedLessons[0].completed / totalLessons[0].total) * 100).toFixed(2);
 
         await db.promise().query(
-            'UPDATE enrollments SET progress = ? WHERE user_id = ? AND module_id = ?',
+            'UPDATE enrollments SET progress = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND module_id = ?',
             [progress, userId, moduleId]
         );
+
+        if (parseFloat(progress) === 100.00) {
+            await db.promise().query(
+                'UPDATE enrollments SET status = "COMPLETED", completion_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND module_id = ?',
+                [userId, moduleId]
+            );
+        }
 
         res.status(200).json({
             status: 'success',
@@ -58,3 +64,4 @@ exports.markLessonCompleted = async (req, res) => {
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
+
