@@ -1,5 +1,7 @@
 const db = require('../config/db');
 const { ulid } = require('ulid');
+const upload = require('../utils/fileUpload');
+const bucket = require('../config/cloudStorage');
 
 exports.getAllModules = async (req, res) => {
     try {
@@ -95,33 +97,51 @@ exports.getModuleDetails = async (req, res) => {
     }
 };
 
-// Create a new module
-exports.createModule = async (req, res) => {
-    try {
-        const userId = req.user.id; 
-        const { title, description, playlistUrl, thumbnailUrl } = req.body;
+exports.createModule = [
+    upload.single('thumbnail'), 
 
-        if (!title || !description || !playlistUrl) {
-            return res.status(400).json({ error: 'All required fields must be filled!' });
+    async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { title, description, playlistUrl } = req.body;
+
+            if (!title || !description || !playlistUrl) {
+                return res.status(400).json({ error: 'All required fields (title, description, playlistUrl) must be filled!' });
+            }
+
+           
+            if (!req.file) {
+                return res.status(400).json({ error: 'Thumbnail image is required!' });
+            }
+
+           
+            const ulidValue = ulid();
+            const fileName = `modules/thumbnails/${ulidValue}-${req.file.originalname}`;
+            const file = bucket.file(fileName);
+
+            await file.save(req.file.buffer, {
+                metadata: { contentType: req.file.mimetype },
+                resumable: false,
+            });
+
+            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+            await db.promise().query(
+                'INSERT INTO modules (ulid, title, description, playlist_url, thumbnail_url, is_hidden, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [ulidValue, title, description, playlistUrl, publicUrl, false, userId]
+            );
+
+            res.status(201).json({
+                status: 'success',
+                message: 'Module created successfully!',
+                thumbnailUrl: publicUrl,
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Internal server error!' });
         }
-
-        const ulidValue = ulid();
-
-        // Insert the module into the database
-        await db.promise().query(
-            'INSERT INTO modules (ulid, title, description, playlist_url, thumbnail_url, is_hidden, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [ulidValue, title, description, playlistUrl, thumbnailUrl || null, false, userId]
-        );
-
-        res.status(201).json({
-            status: 'success',
-            message: 'Module created successfully!'
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error!' });
     }
-};
+];
 
 // Update module 
 exports.updateModule = async (req, res) => {
