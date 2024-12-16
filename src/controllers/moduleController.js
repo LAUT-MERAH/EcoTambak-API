@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { ulid } = require('ulid');
+const path = require('path');
 const upload = require('../utils/fileUpload');
 const bucket = require('../config/cloudStorage');
 
@@ -143,41 +144,75 @@ exports.createModule = [
     }
 ];
 
-// Update module 
-exports.updateModule = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { moduleUlid } = req.params;
-        const { title, description, playlistUrl, thumbnailUrl, is_hidden } = req.body;
+exports.updateModule = [
+    upload.single('thumbnail'),
+    async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const { moduleUlid } = req.params;
+            const { title, description, playlistUrl, is_hidden } = req.body;
 
-        const [module] = await db.promise().query(
-            'SELECT * FROM modules WHERE ulid = ? AND user_id = ?',
-            [moduleUlid, userId]
-        );
+            const [module] = await db.promise().query(
+                'SELECT * FROM modules WHERE ulid = ? AND user_id = ?',
+                [moduleUlid, userId]
+            );
 
-        if (module.length === 0) {
-            return res.status(404).json({ error: 'Module not found or you do not have permission to update it!' });
+            if (module.length === 0) {
+                return res.status(404).json({ error: 'Module not found or you do not have permission to update it!' });
+            }
+
+            let thumbnailUrl = module[0].thumbnail_url;
+
+            if (req.file) {
+                const oldThumbnail = module[0].thumbnail_url;
+
+                const fileExtension = path.extname(req.file.originalname);
+                const fileName = `modules/thumbnails/${moduleUlid}-${Date.now()}${fileExtension}`;
+                const file = bucket.file(fileName);
+
+                // Upload new thumbnail
+                await file.save(req.file.buffer, {
+                    metadata: { contentType: req.file.mimetype },
+                    resumable: false,
+                });
+
+                thumbnailUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+               
+                if (oldThumbnail) {
+                    const oldFileName = oldThumbnail.split(`https://storage.googleapis.com/${bucket.name}/`)[1];
+                    const oldFile = bucket.file(oldFileName);
+
+                    try {
+                        await oldFile.delete();
+                        console.log(`Old thumbnail deleted: ${oldFileName}`);
+                    } catch (deleteError) {
+                        console.error(`Error deleting old thumbnail: ${deleteError.message}`);
+                    }
+                }
+            }
+
+            await db.promise().query(
+                'UPDATE modules SET title = ?, description = ?, playlist_url = ?, thumbnail_url = ?, is_hidden = ?, updated_at = CURRENT_TIMESTAMP WHERE ulid = ?',
+                [
+                    title || module[0].title,
+                    description || module[0].description,
+                    playlistUrl || module[0].playlist_url,
+                    thumbnailUrl,
+                    typeof is_hidden !== 'undefined' ? is_hidden : module[0].is_hidden,
+                    moduleUlid
+                ]
+            );
+
+            res.status(200).json({
+                status: 'success',
+                message: 'Module updated successfully!',
+                thumbnailUrl,
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Internal server error!' });
         }
-
-        await db.promise().query(
-            'UPDATE modules SET title = ?, description = ?, playlist_url = ?, thumbnail_url = ?, is_hidden = ?, updated_at = CURRENT_TIMESTAMP WHERE ulid = ?',
-            [
-                title || module[0].title,
-                description || module[0].description,
-                playlistUrl || module[0].playlist_url,
-                thumbnailUrl || module[0].thumbnail_url,
-                typeof is_hidden !== 'undefined' ? is_hidden : module[0].is_hidden,
-                moduleUlid
-            ]
-        );
-
-        res.status(200).json({
-            status: 'success',
-            message: 'Module updated successfully!'
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error!' });
     }
-};
+];
 
