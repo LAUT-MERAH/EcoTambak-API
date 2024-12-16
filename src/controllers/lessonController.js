@@ -18,7 +18,7 @@ exports.getLessons = async (req, res) => {
         }
 
         const [lessons] = await db.promise().query(
-            'SELECT ulid, title, video_url, thumbnail_url, created_at FROM lessons WHERE module_id = ?',
+            'SELECT ulid, title, video_url, created_at FROM lessons WHERE module_id = ?',
             [module[0].id]
         );
 
@@ -35,7 +35,7 @@ exports.getLessons = async (req, res) => {
 exports.addLesson = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { moduleUlid, title, videoUrl, thumbnailUrl } = req.body;
+        const { moduleUlid, title, videoUrl } = req.body;
 
         if (!moduleUlid || !title || !videoUrl) {
             return res.status(400).json({ error: 'All required fields (moduleUlid, title, videoUrl) must be filled!' });
@@ -53,8 +53,8 @@ exports.addLesson = async (req, res) => {
         const ulidValue = ulid();
 
         await db.promise().query(
-            'INSERT INTO lessons (ulid, module_id, title, video_url, thumbnail_url, user_id) VALUES (?, ?, ?, ?, ?, ?)',
-            [ulidValue, module[0].id, title, videoUrl, thumbnailUrl || null, userId]
+            'INSERT INTO lessons (ulid, module_id, title, video_url, user_id) VALUES (?, ?, ?, ?, ?)',
+            [ulidValue, module[0].id, title, videoUrl || null, userId]
         );
 
         res.status(201).json({
@@ -72,9 +72,9 @@ exports.updateLesson = async (req, res) => {
     try {
         const userId = req.user.id;
         const { lessonUlid } = req.params;
-        const { title, videoUrl, thumbnailUrl } = req.body;
+        const { title, videoUrl } = req.body;
 
-
+        // Check if the lesson exists and belongs to the instructor
         const [lesson] = await db.promise().query(
             'SELECT * FROM lessons WHERE ulid = ? AND user_id = ?',
             [lessonUlid, userId]
@@ -84,11 +84,10 @@ exports.updateLesson = async (req, res) => {
         }
 
         await db.promise().query(
-            'UPDATE lessons SET title = ?, video_url = ?, thumbnail_url = ?, updated_at = CURRENT_TIMESTAMP WHERE ulid = ?',
+            'UPDATE lessons SET title = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE ulid = ?',
             [
                 title || lesson[0].title,
                 videoUrl || lesson[0].video_url,
-                thumbnailUrl || lesson[0].thumbnail_url,
                 lessonUlid
             ]
         );
@@ -102,6 +101,7 @@ exports.updateLesson = async (req, res) => {
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
+
 
 exports.deleteLesson = async (req, res) => {
     try {
