@@ -88,9 +88,17 @@ exports.enrollInModule = async (req, res) => {
             return res.status(400).json({ error: 'Module ULID is required!' });
         }
 
-        const [module] = await db.promise().query('SELECT * FROM modules WHERE ulid = ? AND is_hidden = FALSE', [moduleUlid]);
+        const [module] = await db.promise().query(
+            'SELECT * FROM modules WHERE ulid = ? AND is_hidden = FALSE',
+            [moduleUlid]
+        );
         if (module.length === 0) {
             return res.status(404).json({ error: 'Module not found or not active!' });
+        }
+
+        // Check for free module
+        if (module[0].price > 0) {
+            return res.status(403).json({ error: 'This module requires payment for enrollment.' });
         }
 
         const [existingEnrollment] = await db.promise().query(
@@ -116,4 +124,3 @@ exports.enrollInModule = async (req, res) => {
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
-
