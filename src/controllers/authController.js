@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 const tokenBlacklist = require('../config/tokenBlacklist');
 require('dotenv').config();
 
-// User Registration
 exports.register = async (req, res) => {
     try {
         const { username, email, password, confirmPassword, firstName, lastName } = req.body;
@@ -18,7 +17,6 @@ exports.register = async (req, res) => {
             return res.status(400).json({ error: 'Passwords do not match!' });
         }
 
-        // Check if user already exists
         const [existingUser] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
         if (existingUser.length > 0) {
             return res.status(400).json({ error: 'Email already exist!' });
@@ -29,13 +27,10 @@ exports.register = async (req, res) => {
             return res.status(400).json({ error: 'Username already exist!' });
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Generate a ULID
         const ulidValue = ulid();
 
-        // Insert user into database
         await db.promise().query(
             'INSERT INTO users (ulid, username, email, password, first_name, last_name, role_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [ulidValue, username, email, hashedPassword, firstName, lastName || null, 3] // Default role_id is 3 (Student)
@@ -51,29 +46,30 @@ exports.register = async (req, res) => {
     }
 };
 
-// User Login
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        // Check if user exists
         const [userResults] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
         if (userResults.length === 0) {
-            return res.status(400).json({ error: 'User is not exist!' });
+            return res.status(400).json({ error: 'User does not exist!' });
         }
 
         const user = userResults[0];
 
-        // Compare passwords
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ error: 'Invalid email or password!' });
         }
+
         const payload = {
             id: user.id,
             username: user.username,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
             role_id: user.role_id
         };
+
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.status(200).json({
@@ -87,7 +83,6 @@ exports.login = async (req, res) => {
     }
 };
 
-// User Logout
 exports.logout = (req, res) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if (token) {
