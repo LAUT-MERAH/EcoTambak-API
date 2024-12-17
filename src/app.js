@@ -10,6 +10,7 @@ const moduleRoutes = require('./routes/moduleRoutes');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
 const progressRoutes = require('./routes/progressRoutes');
 const certificationRoutes = require('./routes/certificationRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,5 +50,8 @@ apiV1Router.use('/admin', adminRoutes);
 apiV1Router.use('/enrollments', enrollmentRoutes);
 apiV1Router.use('/progress', progressRoutes);
 app.use('/api/v1/certifications', certificationRoutes);
+apiV1Router.use('/transactions', transactionRoutes);
+
+
 
 app.use('/api/v1', apiV1Router);
