@@ -40,13 +40,12 @@ exports.getInstructorModules = async (req, res) => {
 exports.getModuleDetails = async (req, res) => {
     try {
         const { moduleUlid } = req.params;
-        const userId = req.user?.id || null; // Check if a user is logged in
+        const userId = req.user?.id || null;
 
         if (!moduleUlid) {
             return res.status(400).json({ error: 'Module ULID is required!' });
         }
 
-        // Fetch module details
         const [moduleDetails] = await db.promise().query(
             `SELECT 
                 modules.ulid, 
@@ -65,16 +64,13 @@ exports.getModuleDetails = async (req, res) => {
         }
 
         const module = moduleDetails[0];
-
-        // Fetch lessons for the module
         const [lessons] = await db.promise().query(
             `SELECT ulid, title, video_url, thumbnail_url 
              FROM lessons 
              WHERE module_id = (SELECT id FROM modules WHERE ulid = ?)`,
             [moduleUlid]
         );
-
-        // Check if the user is enrolled in this module
+        
         let isEnrolled = false;
         if (userId) {
             const [enrollment] = await db.promise().query(
@@ -176,7 +172,6 @@ exports.updateModule = [
             }
 
             let thumbnailUrl = module[0].thumbnail_url;
-
             if (req.file) {
                 const oldThumbnail = module[0].thumbnail_url;
 
@@ -184,7 +179,6 @@ exports.updateModule = [
                 const fileName = `modules/thumbnails/${moduleUlid}-${Date.now()}${fileExtension}`;
                 const file = bucket.file(fileName);
 
-                // Upload new thumbnail
                 await file.save(req.file.buffer, {
                     metadata: { contentType: req.file.mimetype },
                     resumable: false,
@@ -195,13 +189,18 @@ exports.updateModule = [
                
                 if (oldThumbnail) {
                     const oldFileName = oldThumbnail.split(`https://storage.googleapis.com/${bucket.name}/`)[1];
-                    const oldFile = bucket.file(oldFileName);
-
-                    try {
-                        await oldFile.delete();
-                        console.log(`Old thumbnail deleted: ${oldFileName}`);
-                    } catch (deleteError) {
-                        console.error(`Error deleting old thumbnail: ${deleteError.message}`);
+                
+                    if (oldFileName) { 
+                        const oldFile = bucket.file(oldFileName);
+                
+                        try {
+                            await oldFile.delete();
+                            console.log(`Old thumbnail deleted: ${oldFileName}`);
+                        } catch (deleteError) {
+                            console.error(`Error deleting old thumbnail: ${deleteError.message}`);
+                        }
+                    } else {
+                        console.warn('Old file name is invalid. Skipping deletion.');
                     }
                 }
             }
