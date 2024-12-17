@@ -30,6 +30,7 @@ CREATE TABLE modules (
     description TEXT NOT NULL,
     playlist_url VARCHAR(2083) NOT NULL,
     thumbnail_url VARCHAR(2083),
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     is_hidden BOOLEAN DEFAULT FALSE,
     user_id BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -68,19 +69,6 @@ CREATE TABLE enrollments (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create Certifications Table
-CREATE TABLE certifications (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    ulid CHAR(26) NOT NULL UNIQUE,
-    module_id BIGINT UNSIGNED NOT NULL,
-    user_id BIGINT UNSIGNED NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
 -- Create Instructor Applications Table
 CREATE TABLE instructor_applications (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -98,7 +86,23 @@ CREATE TABLE lesson_completions (
     user_id BIGINT UNSIGNED NOT NULL,
     lesson_id BIGINT UNSIGNED NOT NULL,
     completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_user_lesson (user_id, lesson_id), -- Prevent duplicate entries
+    UNIQUE KEY unique_user_lesson (user_id, lesson_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
 );
+
+CREATE TABLE transactions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ulid CHAR(26) NOT NULL UNIQUE,
+    module_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    order_id VARCHAR(255) NOT NULL,
+    transaction_status VARCHAR(20) NOT NULL,
+    gross_amount DECIMAL(10,2) NOT NULL,
+    payment_type VARCHAR(50),
+    transaction_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+

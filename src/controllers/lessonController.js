@@ -3,6 +3,7 @@ const { ulid } = require('ulid');
 
 exports.getLessons = async (req, res) => {
     try {
+        const userId = req.user.id;
         const { moduleUlid } = req.params;
 
         if (!moduleUlid) {
@@ -10,16 +11,27 @@ exports.getLessons = async (req, res) => {
         }
 
         const [module] = await db.promise().query(
-            'SELECT * FROM modules WHERE ulid = ?',
+            'SELECT id, title FROM modules WHERE ulid = ? AND is_hidden = FALSE',
             [moduleUlid]
         );
         if (module.length === 0) {
-            return res.status(404).json({ error: 'Module not found!' });
+            return res.status(404).json({ error: 'Module not found or inactive!' });
+        }
+
+        const moduleId = module[0].id;
+
+        const [enrollment] = await db.promise().query(
+            'SELECT * FROM enrollments WHERE user_id = ? AND module_id = ?',
+            [userId, moduleId]
+        );
+
+        if (enrollment.length === 0) {
+            return res.status(403).json({ error: 'You are not enrolled in this module!' });
         }
 
         const [lessons] = await db.promise().query(
             'SELECT ulid, title, video_url, created_at FROM lessons WHERE module_id = ?',
-            [module[0].id]
+            [moduleId]
         );
 
         res.status(200).json({
@@ -27,7 +39,7 @@ exports.getLessons = async (req, res) => {
             data: lessons
         });
     } catch (error) {
-        console.error(error);
+        console.error('Error fetching lessons:', error);
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
@@ -49,7 +61,6 @@ exports.addLesson = async (req, res) => {
             return res.status(404).json({ error: 'Module not found or you do not have permission to add lessons to it!' });
         }
 
-        // Generate ULID for the lesson
         const ulidValue = ulid();
 
         await db.promise().query(
@@ -74,7 +85,6 @@ exports.updateLesson = async (req, res) => {
         const { lessonUlid } = req.params;
         const { title, videoUrl } = req.body;
 
-        // Check if the lesson exists and belongs to the instructor
         const [lesson] = await db.promise().query(
             'SELECT * FROM lessons WHERE ulid = ? AND user_id = ?',
             [lessonUlid, userId]

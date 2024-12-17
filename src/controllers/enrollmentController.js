@@ -14,6 +14,8 @@ exports.getEnrollments = async (req, res) => {
                 m.description,
                 m.thumbnail_url,
                 e.status,
+                e.completion_date,
+                e.certificate_url,
                 COUNT(DISTINCT l.id) AS total_lessons,
                 COUNT(DISTINCT lc.id) AS completed_lessons,
                 e.enrollment_date
@@ -27,31 +29,50 @@ exports.getEnrollments = async (req, res) => {
             [userId]
         );
 
-        const data = enrollments.map((enrollment) => {
+        const groupedData = {
+            NOT_STARTED: { category: 'NOT_STARTED', data: [], count: 0 },
+            IN_PROGRESS: { category: 'IN_PROGRESS', data: [], count: 0 },
+            COMPLETED: { category: 'COMPLETED', data: [], count: 0 }
+        };
+
+        enrollments.forEach((enrollment) => {
             const totalLessons = enrollment.total_lessons || 0;
             const completedLessons = enrollment.completed_lessons || 0;
             const progress = totalLessons > 0
                 ? ((completedLessons / totalLessons) * 100).toFixed(2)
                 : 0;
 
-            return {
+            const enrollmentData = {
                 enrollment_id: enrollment.enrollment_id,
                 module_id: enrollment.module_id,
                 title: enrollment.title,
                 description: enrollment.description,
                 thumbnail_url: enrollment.thumbnail_url,
-                status: enrollment.status,
                 progress: progress,
                 enrollment_date: enrollment.enrollment_date
             };
+
+            if (enrollment.status === 'COMPLETED') {
+                enrollmentData.completion_date = enrollment.completion_date;
+                enrollmentData.certificate_url = enrollment.certificate_url;
+            }
+
+            if (groupedData[enrollment.status]) {
+                groupedData[enrollment.status].data.push(enrollmentData);
+                groupedData[enrollment.status].count++;
+            }
         });
 
         res.status(200).json({
             status: 'success',
-            data: data
+            data: [
+                groupedData.NOT_STARTED,
+                groupedData.IN_PROGRESS,
+                groupedData.COMPLETED
+            ]
         });
     } catch (error) {
-        console.error(error);
+        console.error('Error fetching enrollments:', error);
         res.status(500).json({ error: 'Internal server error!' });
     }
 };
