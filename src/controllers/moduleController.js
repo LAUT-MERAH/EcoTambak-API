@@ -104,10 +104,15 @@ exports.createModule = [
     async (req, res) => {
         try {
             const userId = req.user.id;
-            const { title, description, playlistUrl } = req.body;
+            const { title, description, playlistUrl, price } = req.body;
 
-            if (!title || !description || !playlistUrl) {
-                return res.status(400).json({ error: 'All required fields (title, description, playlistUrl) must be filled!' });
+            if (!title || !description || !playlistUrl || price === undefined) {
+                return res.status(400).json({ error: 'All required fields (title, description, playlistUrl, price) must be filled!' });
+            }
+
+            const parsedPrice = parseFloat(price);
+            if (isNaN(parsedPrice) || parsedPrice < 0) {
+                return res.status(400).json({ error: 'Price must be a valid positive number!' });
             }
 
            
@@ -128,14 +133,15 @@ exports.createModule = [
             const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
 
             await db.promise().query(
-                'INSERT INTO modules (ulid, title, description, playlist_url, thumbnail_url, is_hidden, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [ulidValue, title, description, playlistUrl, publicUrl, false, userId]
+                'INSERT INTO modules (ulid, title, description, playlist_url, thumbnail_url, is_hidden, user_id, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [ulidValue, title, description, playlistUrl, publicUrl, false, userId, parsedPrice]
             );
 
             res.status(201).json({
                 status: 'success',
                 message: 'Module created successfully!',
                 thumbnailUrl: publicUrl,
+                price: parsedPrice,
             });
         } catch (error) {
             console.error(error);
@@ -150,7 +156,7 @@ exports.updateModule = [
         try {
             const userId = req.user.id;
             const { moduleUlid } = req.params;
-            const { title, description, playlistUrl, is_hidden } = req.body;
+            const { title, description, playlistUrl, is_hidden, price } = req.body;
 
             const [module] = await db.promise().query(
                 'SELECT * FROM modules WHERE ulid = ? AND user_id = ?',
@@ -159,6 +165,14 @@ exports.updateModule = [
 
             if (module.length === 0) {
                 return res.status(404).json({ error: 'Module not found or you do not have permission to update it!' });
+            }
+
+            let parsedPrice = module[0].price;
+            if (price !== undefined) {
+                parsedPrice = parseFloat(price);
+                if (isNaN(parsedPrice) || parsedPrice < 0) {
+                    return res.status(400).json({ error: 'Price must be a valid positive number!' });
+                }
             }
 
             let thumbnailUrl = module[0].thumbnail_url;
@@ -193,13 +207,14 @@ exports.updateModule = [
             }
 
             await db.promise().query(
-                'UPDATE modules SET title = ?, description = ?, playlist_url = ?, thumbnail_url = ?, is_hidden = ?, updated_at = CURRENT_TIMESTAMP WHERE ulid = ?',
+                'UPDATE modules SET title = ?, description = ?, playlist_url = ?, thumbnail_url = ?, is_hidden = ?, price = ?, updated_at = CURRENT_TIMESTAMP WHERE ulid = ?',
                 [
                     title || module[0].title,
                     description || module[0].description,
                     playlistUrl || module[0].playlist_url,
                     thumbnailUrl,
                     typeof is_hidden !== 'undefined' ? is_hidden : module[0].is_hidden,
+                    parsedPrice,
                     moduleUlid
                 ]
             );
@@ -208,6 +223,7 @@ exports.updateModule = [
                 status: 'success',
                 message: 'Module updated successfully!',
                 thumbnailUrl,
+                price: parsedPrice
             });
         } catch (error) {
             console.error(error);
