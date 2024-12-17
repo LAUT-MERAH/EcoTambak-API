@@ -18,9 +18,7 @@ function validateSignatureKey(body) {
 exports.createTransaction = async (req, res) => {
     try {
         const userId = req.user.id;
-
         const { moduleUlid } = req.params;
-
         const [module] = await db.promise().query(
             'SELECT id, title, price FROM modules WHERE ulid = ?',
             [moduleUlid]
