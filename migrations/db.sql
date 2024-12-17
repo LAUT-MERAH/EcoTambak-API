@@ -30,6 +30,7 @@ CREATE TABLE modules (
     description TEXT NOT NULL,
     playlist_url VARCHAR(2083) NOT NULL,
     thumbnail_url VARCHAR(2083),
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     is_hidden BOOLEAN DEFAULT FALSE,
     user_id BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
