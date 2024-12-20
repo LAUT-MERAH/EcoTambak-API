@@ -6,7 +6,7 @@ const bucket = require('../config/cloudStorage');
 
 exports.getAllModules = async (req, res) => {
     try {
-        const [modules] = await db.promise().query('SELECT * FROM modules');
+        const [modules] = await db.promise().query('SELECT ulid, title, description, thumbnail_url FROM modules WHERE is_hidden = FALSE');
 
         res.status(200).json({
             status: 'success',
